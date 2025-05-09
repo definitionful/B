@@ -1,0 +1,169 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Setup ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "HeadModUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Toggle Button
+local toggleButton = Instance.new("TextButton", screenGui)
+toggleButton.Size = UDim2.new(0, 100, 0, 30)
+toggleButton.Position = UDim2.new(0, 10, 1, -40)
+toggleButton.Text = "Head Mod"
+toggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+toggleButton.TextColor3 = Color3.new(1, 1, 1)
+toggleButton.Font = Enum.Font.SourceSansBold
+toggleButton.TextSize = 16
+
+-- Settings Frame
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 250, 0, 150)
+frame.Position = UDim2.new(0, 20, 0.5, -75)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Visible = false
+frame.Active = true
+frame.Draggable = true -- Makes the frame movable
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundTransparency = 1
+title.Text = "Head Mod Settings"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 20
+
+local checkbox = Instance.new("TextButton", frame)
+checkbox.Position = UDim2.new(0, 10, 0, 40)
+checkbox.Size = UDim2.new(0, 100, 0, 30)
+checkbox.Text = "Enable: OFF"
+checkbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+checkbox.TextColor3 = Color3.new(1, 1, 1)
+
+local sizeSlider = Instance.new("TextBox", frame)
+sizeSlider.Position = UDim2.new(0, 10, 0, 80)
+sizeSlider.Size = UDim2.new(0, 100, 0, 25)
+sizeSlider.Text = "Size: 1"
+sizeSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+sizeSlider.TextColor3 = Color3.new(1, 1, 1)
+
+local transparencySlider = Instance.new("TextBox", frame)
+transparencySlider.Position = UDim2.new(0, 130, 0, 80)
+transparencySlider.Size = UDim2.new(0, 100, 0, 25)
+transparencySlider.Text = "Trans: 0"
+transparencySlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+transparencySlider.TextColor3 = Color3.new(1, 1, 1)
+
+-- Logic
+local enabled = false
+local headSize = 1
+local headTransparency = 0
+
+local R6_DEFAULT = Vector3.new(2, 1, 1)
+local R15_DEFAULT = Vector3.new(1.198, 1.202, 1.198)
+
+local function applyHeadMod(character)
+	local head = character:FindFirstChild("Head")
+	if not head or not head:IsA("BasePart") then return end
+
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return end
+
+	local isR15 = humanoid.RigType == Enum.HumanoidRigType.R15
+
+	if enabled then
+		if isR15 then
+			local mesh = head:FindFirstChildWhichIsA("SpecialMesh")
+			if mesh then
+				mesh.Scale = R15_DEFAULT * headSize
+			else
+				head.Size = R15_DEFAULT * headSize
+			end
+		else
+			head.Size = R6_DEFAULT * headSize
+		end
+		head.Transparency = headTransparency
+	else
+		if isR15 then
+			local mesh = head:FindFirstChildWhichIsA("SpecialMesh")
+			if mesh then
+				mesh.Scale = R15_DEFAULT
+			else
+				head.Size = R15_DEFAULT
+			end
+		else
+			head.Size = R6_DEFAULT
+		end
+		head.Transparency = 0
+	end
+end
+
+local function updateAllPlayers()
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character then
+			applyHeadMod(player.Character)
+		end
+	end
+end
+
+-- UI Button Behavior
+checkbox.MouseButton1Click:Connect(function()
+	enabled = not enabled
+	checkbox.Text = "Enable: " .. (enabled and "ON" or "OFF")
+	updateAllPlayers()
+end)
+
+sizeSlider.FocusLost:Connect(function(enterPressed)
+	if enterPressed then
+		local num = tonumber(sizeSlider.Text:match("%d*%.?%d+"))
+		if num then
+			headSize = math.clamp(num, 0.1, 5)
+			sizeSlider.Text = "Size: " .. headSize
+			if enabled then updateAllPlayers() end
+		else
+			sizeSlider.Text = "Size: " .. headSize
+		end
+	end
+end)
+
+transparencySlider.FocusLost:Connect(function(enterPressed)
+	if enterPressed then
+		local num = tonumber(transparencySlider.Text:match("%d*%.?%d+"))
+		if num then
+			headTransparency = math.clamp(num, 0, 1)
+			transparencySlider.Text = "Trans: " .. headTransparency
+			if enabled then updateAllPlayers() end
+		else
+			transparencySlider.Text = "Trans: " .. headTransparency
+		end
+	end
+end)
+
+-- Toggle GUI visibility
+toggleButton.MouseButton1Click:Connect(function()
+	frame.Visible = not frame.Visible
+end)
+
+-- New player join handler
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(char)
+		if enabled then
+			task.wait(1)
+			applyHeadMod(char)
+		end
+	end)
+end)
+
+-- Setup for already loaded players
+for _, player in ipairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer and player.Character then
+		player.CharacterAdded:Connect(function(char)
+			if enabled then
+				task.wait(1)
+				applyHeadMod(char)
+			end
+		end)
+	end
+end
