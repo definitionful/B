@@ -125,7 +125,7 @@ sizeSlider.FocusLost:Connect(function(enterPressed)
 	if enterPressed then
 		local num = tonumber(sizeSlider.Text:match("%d*%.?%d+"))
 		if num then
-			headSize = math.clamp(num, 0.1, 5)
+			headSize = math.clamp(num, 0.1, 50)
 			sizeSlider.Text = "Size: " .. headSize
 			if enabled then updateAllPlayers() end
 		else
