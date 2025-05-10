@@ -1,7 +1,7 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- Setup ScreenGui
+-- GUI Setup
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "HeadModUI"
 screenGui.ResetOnSpawn = false
@@ -17,7 +17,7 @@ toggleButton.TextColor3 = Color3.new(1, 1, 1)
 toggleButton.Font = Enum.Font.SourceSansBold
 toggleButton.TextSize = 16
 
--- Settings Frame
+-- Main Frame
 local frame = Instance.new("Frame", screenGui)
 frame.Size = UDim2.new(0, 250, 0, 150)
 frame.Position = UDim2.new(0, 20, 0.5, -75)
@@ -25,7 +25,7 @@ frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BorderSizePixel = 0
 frame.Visible = false
 frame.Active = true
-frame.Draggable = true -- Makes the frame movable
+frame.Draggable = true
 
 local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1, 0, 0, 30)
@@ -56,7 +56,7 @@ transparencySlider.Text = "Trans: 0"
 transparencySlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 transparencySlider.TextColor3 = Color3.new(1, 1, 1)
 
--- Logic
+-- Logic Vars
 local enabled = false
 local headSize = 1
 local headTransparency = 0
@@ -64,6 +64,7 @@ local headTransparency = 0
 local R6_DEFAULT = Vector3.new(2, 1, 1)
 local R15_DEFAULT = Vector3.new(1.198, 1.202, 1.198)
 
+-- Apply or Reset Head
 local function applyHeadMod(character)
 	local head = character:FindFirstChild("Head")
 	if not head or not head:IsA("BasePart") then return end
@@ -100,6 +101,7 @@ local function applyHeadMod(character)
 	end
 end
 
+-- Update All Characters
 local function updateAllPlayers()
 	for _, player in ipairs(Players:GetPlayers()) do
 		if player ~= LocalPlayer and player.Character then
@@ -108,7 +110,7 @@ local function updateAllPlayers()
 	end
 end
 
--- UI Button Behavior
+-- GUI Events
 checkbox.MouseButton1Click:Connect(function()
 	enabled = not enabled
 	checkbox.Text = "Enable: " .. (enabled and "ON" or "OFF")
@@ -141,29 +143,52 @@ transparencySlider.FocusLost:Connect(function(enterPressed)
 	end
 end)
 
--- Toggle GUI visibility
 toggleButton.MouseButton1Click:Connect(function()
 	frame.Visible = not frame.Visible
 end)
 
--- New player join handler
-Players.PlayerAdded:Connect(function(player)
+-- Handle Character + Death
+local function setupCharacterMonitoring(player)
 	player.CharacterAdded:Connect(function(char)
+		local function onDeath()
+			local head = char:FindFirstChild("Head")
+			if head and head:IsA("BasePart") then
+				local humanoid = char:FindFirstChildOfClass("Humanoid")
+				if humanoid and humanoid.RigType == Enum.HumanoidRigType.R15 then
+					local mesh = head:FindFirstChildWhichIsA("SpecialMesh")
+					if mesh then
+						mesh.Scale = R15_DEFAULT
+					else
+						head.Size = R15_DEFAULT
+					end
+				else
+					head.Size = R6_DEFAULT
+				end
+				head.Transparency = 0
+			end
+		end
+
+		local humanoid = char:WaitForChild("Humanoid", 3)
+		if humanoid then
+			humanoid.Died:Connect(onDeath)
+		end
+
 		if enabled then
 			task.wait(1)
 			applyHeadMod(char)
 		end
 	end)
-end)
+end
 
--- Setup for already loaded players
+-- Apply to all players
 for _, player in ipairs(Players:GetPlayers()) do
-	if player ~= LocalPlayer and player.Character then
-		player.CharacterAdded:Connect(function(char)
-			if enabled then
-				task.wait(1)
-				applyHeadMod(char)
-			end
-		end)
+	if player ~= LocalPlayer then
+		setupCharacterMonitoring(player)
 	end
 end
+
+Players.PlayerAdded:Connect(function(player)
+	if player ~= LocalPlayer then
+		setupCharacterMonitoring(player)
+	end
+end)
