@@ -101,11 +101,14 @@ local function applyHeadMod(character)
 	end
 end
 
--- Update All Characters
+-- Update All Players (Only alive)
 local function updateAllPlayers()
 	for _, player in ipairs(Players:GetPlayers()) do
 		if player ~= LocalPlayer and player.Character then
-			applyHeadMod(player.Character)
+			local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+			if humanoid and humanoid.Health > 0 then
+				applyHeadMod(player.Character)
+			end
 		end
 	end
 end
@@ -147,7 +150,7 @@ toggleButton.MouseButton1Click:Connect(function()
 	frame.Visible = not frame.Visible
 end)
 
--- Handle Character + Death
+-- Monitor Character + Reset on Death
 local function setupCharacterMonitoring(player)
 	player.CharacterAdded:Connect(function(char)
 		local function onDeath()
@@ -180,7 +183,7 @@ local function setupCharacterMonitoring(player)
 	end)
 end
 
--- Apply to All Players
+-- Setup all players
 for _, player in ipairs(Players:GetPlayers()) do
 	if player ~= LocalPlayer then
 		setupCharacterMonitoring(player)
@@ -193,7 +196,7 @@ Players.PlayerAdded:Connect(function(player)
 	end
 end)
 
--- ✅ Auto-refresh every 5 seconds
+-- Auto-refresh every 5 seconds (only for living characters)
 task.spawn(function()
 	while true do
 		task.wait(5)
