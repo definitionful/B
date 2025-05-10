@@ -1,4 +1,5 @@
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
 -- GUI Setup
@@ -196,12 +197,25 @@ Players.PlayerAdded:Connect(function(player)
 	end
 end)
 
--- Auto-refresh every 5 seconds (only for living characters)
+-- Auto-refresh every 5 seconds
 task.spawn(function()
 	while true do
 		task.wait(5)
 		if enabled then
 			updateAllPlayers()
 		end
+	end
+end)
+
+-- Keybinds
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+
+	if input.KeyCode == Enum.KeyCode.Insert then
+		frame.Visible = not frame.Visible
+	elseif input.KeyCode == Enum.KeyCode.Delete then
+		enabled = not enabled
+		checkbox.Text = "Enable: " .. (enabled and "ON" or "OFF")
+		updateAllPlayers()
 	end
 end)
