@@ -68,36 +68,41 @@ local R15_DEFAULT = Vector3.new(1.198, 1.202, 1.198)
 -- Apply or Reset Head
 local function applyHeadMod(character)
 	local head = character:FindFirstChild("Head")
-	if not head or not head:IsA("BasePart") then return end
+	if not head then return end
 
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if not humanoid then return end
 
-	local isR15 = humanoid.RigType == Enum.HumanoidRigType.R15
-
 	if enabled then
-		if isR15 then
-			local mesh = head:FindFirstChildWhichIsA("SpecialMesh")
-			if mesh then
-				mesh.Scale = R15_DEFAULT * headSize
-			else
-				head.Size = R15_DEFAULT * headSize
+		-- Scale head part
+		head.Size = head.Size.Unit * headSize
+
+		-- Scale any mesh inside the head
+		for _, child in ipairs(head:GetChildren()) do
+			if child:IsA("SpecialMesh") or child:IsA("Mesh") then
+				child.Scale = Vector3.new(headSize, headSize, headSize)
 			end
-		else
-			head.Size = R6_DEFAULT * headSize
+		end
+
+		-- If head is a MeshPart, scale it directly
+		if head:IsA("MeshPart") then
+			head.Size = head.Size.Unit * headSize
 		end
 		head.Transparency = headTransparency
 	else
-		if isR15 then
-			local mesh = head:FindFirstChildWhichIsA("SpecialMesh")
-			if mesh then
-				mesh.Scale = R15_DEFAULT
-			else
-				head.Size = R15_DEFAULT
-			end
+		-- Reset to default based on rig
+		if humanoid.RigType == Enum.HumanoidRigType.R15 then
+			head.Size = Vector3.new(1.198, 1.202, 1.198)
 		else
-			head.Size = R6_DEFAULT
+			head.Size = Vector3.new(2, 1, 1)
 		end
+
+		for _, child in ipairs(head:GetChildren()) do
+			if child:IsA("SpecialMesh") or child:IsA("Mesh") then
+				child.Scale = Vector3.new(1, 1, 1)
+			end
+		end
+
 		head.Transparency = 0
 	end
 end
